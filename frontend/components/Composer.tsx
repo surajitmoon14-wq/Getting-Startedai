@@ -37,7 +37,12 @@ export default function Composer({ onResult, onStart, onDone, onConv }: { onResu
         (err) => {
           // fallback to non-stream on error
           console.error('Stream error', err)
-          toast.show('error', 'Stream failed, falling back')
+          // Show toast error message
+          try {
+            toast.show('error', 'Stream failed, falling back')
+          } catch (toastErr) {
+            console.error('Toast error:', toastErr)
+          }
           (async () => {
             try {
               const res = await aiGenerate(value, 'chat', false, convId)
