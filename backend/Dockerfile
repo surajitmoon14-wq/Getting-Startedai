@@ -5,11 +5,11 @@ WORKDIR /app
 # system deps
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
-# copy requirements and install
+# copy requirements from parent directory and install
 COPY ../requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# copy backend code
+# copy backend code to /app/backend
 COPY . /app/backend
 
 ENV PYTHONUNBUFFERED=1
@@ -19,4 +19,3 @@ ENV PORT=8000
 EXPOSE ${PORT}
 
 CMD ["/bin/sh", "-c", "uvicorn backend.app:app --host 0.0.0.0 --port ${PORT}"]
-
