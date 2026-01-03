@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useRef } from 'react'
 import { useToast } from './Toast'
-import { aiGenerate, streamAIGenerate } from '../lib/api'
+import { aiGenerate, streamAIGenerate } from '@/lib/api'
 
 export default function Composer({ onResult, onStart, onDone, onConv }: { onResult?: (out: string) => void; onStart?: (prompt: string) => void; onDone?: () => void; onConv?: (convId: number) => void }) {
   const [value, setValue] = useState('')

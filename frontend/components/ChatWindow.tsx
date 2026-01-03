@@ -1,7 +1,7 @@
 "use client"
 import React, { useEffect, useState } from 'react'
 import { useToast } from './Toast'
-import { exportMarkdown, getIdToken } from '../lib/api'
+import { exportMarkdown, getIdToken } from '@/lib/api'
 
 type ConvMeta = { id?: number; pinned?: boolean; tags?: string }
 
