@@ -8,3 +8,4 @@ frontend/node_modules/
 frontend/.env.local
 # OS
 .DS_Store
+node_modules/
