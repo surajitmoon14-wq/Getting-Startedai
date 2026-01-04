@@ -2,8 +2,14 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# system deps
-RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
+# Install system dependencies for reportlab and Pillow
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libfreetype6-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # copy requirements from repository root and install
 COPY requirements.txt /app/requirements.txt
