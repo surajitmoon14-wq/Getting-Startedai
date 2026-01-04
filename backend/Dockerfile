@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 COPY backend /app/backend
 
 # create writable directory for SQLite database
-RUN mkdir -p /app/data && chmod 777 /app/data
+# Using 755 instead of 777 for better security - owner can write, others can read/execute
+RUN mkdir -p /app/data && chmod 755 /app/data
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
