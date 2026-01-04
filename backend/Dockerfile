@@ -5,17 +5,22 @@ WORKDIR /app
 # system deps
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
-# copy requirements from parent directory and install
-COPY ../requirements.txt /app/requirements.txt
+# copy requirements from repository root and install
+COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # copy backend code to /app/backend
-COPY . /app/backend
+COPY backend /app/backend
+
+# create writable directory for SQLite database
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV PORT=8000
+ENV DATABASE_URL=sqlite:///./data/backend_data.db
 
 EXPOSE ${PORT}
 
-CMD ["/bin/sh", "-c", "uvicorn backend.app:app --host 0.0.0.0 --port ${PORT}"]
+# Use exec form for proper signal handling
+CMD ["sh", "-c", "uvicorn backend.app:app --host 0.0.0.0 --port ${PORT}"]
