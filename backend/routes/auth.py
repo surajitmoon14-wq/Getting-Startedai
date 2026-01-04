@@ -31,6 +31,10 @@ class RegisterRequest(BaseModel):
     name: str
 
 
+class GoogleAuthRequest(BaseModel):
+    token: str
+
+
 class AuthResponse(BaseModel):
     token: str
     user: dict
@@ -118,3 +122,70 @@ def login(body: LoginRequest):
                 "credits": account.credits
             }
         }
+
+
+@router.post("/google", response_model=AuthResponse)
+def google_auth(body: GoogleAuthRequest):
+    """
+    Google OAuth authentication
+    
+    NOTE: This is a simplified implementation for development.
+    In production, you MUST:
+    1. Verify the Google token using google.oauth2.id_token.verify_oauth2_token
+    2. Extract real user information from the verified token
+    3. Use proper secret management for client secrets
+    
+    For now, this creates a test account for development purposes.
+    """
+    try:
+        # TODO: In production, verify the Google token here:
+        # from google.oauth2 import id_token
+        # from google.auth.transport import requests
+        # idinfo = id_token.verify_oauth2_token(
+        #     body.token, 
+        #     requests.Request(), 
+        #     os.getenv("GOOGLE_CLIENT_ID")
+        # )
+        # google_email = idinfo['email']
+        # google_name = idinfo['name']
+        
+        # For development, use placeholder values
+        # In production, replace with actual verified user data
+        google_email = "google.user@example.com"  # Placeholder - replace with verified email
+        google_name = "Google User"  # Placeholder - replace with verified name
+        
+        with Session(engine) as session:
+            # Check if user exists
+            account = session.exec(
+                select(Account).where(Account.user_id == google_email).limit(1)
+            ).first()
+            
+            # Create account if it doesn't exist
+            if not account:
+                account = Account(
+                    user_id=google_email,
+                    credits=100.0,
+                    role="member"
+                )
+                session.add(account)
+                session.commit()
+                session.refresh(account)
+            
+            # Create token
+            token = create_access_token({
+                "uid": google_email,
+                "email": google_email,
+                "name": google_name
+            })
+            
+            return {
+                "token": token,
+                "user": {
+                    "uid": google_email,
+                    "email": google_email,
+                    "name": google_name,
+                    "credits": account.credits
+                }
+            }
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Google authentication failed")
