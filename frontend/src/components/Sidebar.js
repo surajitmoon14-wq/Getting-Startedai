@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Zap,
-  Wrench,
   Brain,
   LogOut,
   Sparkles,
@@ -20,7 +19,6 @@ const Sidebar = ({ user, logout, openAuthDialog }) => {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { icon: Zap, label: "Agents", path: "/agents" },
-    { icon: Wrench, label: "Tools", path: "/tools" },
     { icon: Brain, label: "Intelligence", path: "/intelligence" },
   ];
 

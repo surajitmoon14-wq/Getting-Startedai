@@ -2,14 +2,17 @@ import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 import apiService from "../services/api";
-import { Brain, Send, Sparkles, User } from "lucide-react";
+import { Brain, Send, Sparkles, User, Paperclip, Image, FileText, Music, Video, X } from "lucide-react";
 import { toast } from "sonner";
 
 const Intelligence = ({ user, logout, token, openAuthDialog }) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [attachments, setAttachments] = useState([]);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,17 +22,69 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+    }
+  }, [input]);
+
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    const newAttachments = files.map(file => ({
+      file,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
+    }));
+    setAttachments(prev => [...prev, ...newAttachments]);
+  };
+
+  const removeAttachment = (index) => {
+    setAttachments(prev => {
+      const newAttachments = [...prev];
+      // Revoke object URL if it's an image
+      if (newAttachments[index].preview) {
+        URL.revokeObjectURL(newAttachments[index].preview);
+      }
+      newAttachments.splice(index, 1);
+      return newAttachments;
+    });
+  };
+
+  const triggerFileInput = (accept = "*") => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = accept;
+      fileInputRef.current.click();
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
+    if ((!input.trim() && attachments.length === 0) || loading) return;
 
-    const userMessage = { role: "user", content: input };
+    const userMessage = {
+      role: "user",
+      content: input,
+      attachments: attachments.map(att => ({
+        name: att.name,
+        type: att.type,
+        preview: att.preview
+      }))
+    };
+    
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
+    const currentAttachments = attachments;
     setInput("");
+    setAttachments([]);
     setLoading(true);
 
     try {
-      const data = await apiService.chatWithAI(input, "think", false);
+      // TODO: Update API call to support file uploads
+      const data = await apiService.chatWithAI(currentInput, "think", false);
       const aiMessage = { role: "assistant", content: data.output || data.analysis || "Analysis complete." };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
@@ -48,6 +103,14 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    // Enter to send, Shift+Enter for newline
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(e);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-void text-white">
       <Sidebar user={user} logout={logout} openAuthDialog={openAuthDialog} />
@@ -56,7 +119,7 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
         <div className="p-8 border-b border-white/10">
           <h1 className="heading-font text-4xl mb-2">INTELLIGENCE ANALYSIS</h1>
           <p className="body-font text-gray-400">
-            AI-powered reasoning and cognitive analysis - Chat interface
+            AI-powered reasoning and cognitive analysis with file support
           </p>
         </div>
 
@@ -69,7 +132,7 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
               <h2 className="heading-font text-3xl mb-4">VAELIS INTELLIGENCE</h2>
               <p className="body-font text-gray-400 max-w-md">
                 Ask me to analyze text, detect biases, assess reasoning, or identify intent.
-                I'm powered by advanced AI models.
+                You can also attach images, documents, audio, and video files.
               </p>
             </div>
           )}
@@ -93,10 +156,38 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
                     ? "bg-neon-purple rounded-2xl p-4"
                     : "glass-heavy rounded-2xl p-6"
                 }`}
+                style={{
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                  whiteSpace: 'pre-wrap',
+                  maxWidth: '100%'
+                }}
               >
-                <p className="body-font text-base leading-relaxed whitespace-pre-wrap">
+                <p className="body-font text-base leading-relaxed">
                   {msg.content}
                 </p>
+                {msg.attachments && msg.attachments.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {msg.attachments.map((att, attIdx) => (
+                      <div key={attIdx} className="relative">
+                        {att.preview ? (
+                          <img
+                            src={att.preview}
+                            alt={att.name}
+                            className="w-32 h-32 object-cover rounded-lg"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 bg-white/10 rounded-lg flex flex-col items-center justify-center p-2">
+                            <FileText className="w-8 h-8 text-gray-400 mb-1" />
+                            <span className="text-xs text-gray-400 text-center truncate w-full px-1">
+                              {att.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {msg.role === "user" && (
                 <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -136,25 +227,129 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
 
         <div className="p-8 border-t border-white/10">
           <form onSubmit={sendMessage} className="max-w-4xl mx-auto">
-            <div className="glass-heavy rounded-2xl p-2 flex gap-2">
-              <input
-                type="text"
+            {/* Attachment previews */}
+            {attachments.length > 0 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {attachments.map((att, idx) => (
+                  <div key={idx} className="relative group">
+                    {att.preview ? (
+                      <div className="relative">
+                        <img
+                          src={att.preview}
+                          alt={att.name}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative w-20 h-20 bg-white/10 rounded-lg flex flex-col items-center justify-center p-1">
+                        <FileText className="w-6 h-6 text-gray-400 mb-1" />
+                        <span className="text-xs text-gray-400 text-center truncate w-full px-1">
+                          {att.name.substring(0, 8)}...
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeAttachment(idx)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="glass-heavy rounded-2xl p-2 flex flex-col gap-2">
+              <textarea
+                ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 data-testid="chat-input"
-                placeholder="Ask me to analyze text, detect bias, assess reasoning..."
-                className="flex-1 px-4 py-3 bg-transparent text-white placeholder:text-gray-600 focus:outline-none body-font"
+                placeholder="Ask me to analyze text, detect bias, assess reasoning... (Shift+Enter for new line)"
+                aria-label="Chat message input"
+                className="flex-1 px-4 py-3 bg-transparent text-white placeholder:text-gray-600 focus:outline-none body-font resize-none overflow-y-auto"
+                style={{ 
+                  minHeight: '48px',
+                  maxHeight: '200px'
+                }}
                 disabled={loading}
+                rows={1}
               />
-              <button
-                type="submit"
-                data-testid="send-message-button"
-                disabled={loading || !input.trim()}
-                className="px-6 py-3 bg-neon-purple hover:bg-neon-cyan text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                <Send className="w-5 h-5" />
-              </button>
+              
+              <div className="flex gap-2 items-center px-2">
+                {/* Attachment buttons */}
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('image/*')}
+                  disabled={loading}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                  aria-label="Attach image"
+                  title="Attach image"
+                >
+                  <Image className="w-5 h-5 text-gray-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('audio/*')}
+                  disabled={loading}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                  aria-label="Attach audio"
+                  title="Attach audio"
+                >
+                  <Music className="w-5 h-5 text-gray-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('video/*')}
+                  disabled={loading}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                  aria-label="Attach video"
+                  title="Attach video"
+                >
+                  <Video className="w-5 h-5 text-gray-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('.pdf,.doc,.docx,.txt')}
+                  disabled={loading}
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-50"
+                  aria-label="Attach document"
+                  title="Attach document"
+                >
+                  <Paperclip className="w-5 h-5 text-gray-400" />
+                </button>
+                
+                <div className="flex-1" />
+                
+                <button
+                  type="submit"
+                  data-testid="send-message-button"
+                  disabled={loading || (!input.trim() && attachments.length === 0)}
+                  className="px-6 py-3 bg-neon-purple hover:bg-neon-cyan text-white rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  aria-label="Send message"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
             </div>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </form>
         </div>
       </div>
