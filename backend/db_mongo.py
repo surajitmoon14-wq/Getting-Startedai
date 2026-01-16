@@ -36,18 +36,14 @@ async def init_db(document_models: List):
             socketTimeoutMS=10000,
         )
         
-        # Get database name from URI or use default
-        # Extract database name from connection string if present
-        db_name = "vaelis"  # default
-        if "?" in mongodb_uri:
-            # Extract from connection string parameters
-            parts = mongodb_uri.split("/")
-            if len(parts) > 3:
-                db_part = parts[3].split("?")[0]
-                if db_part:
-                    db_name = db_part
-        
-        database = _mongo_client[db_name]
+        # Get database - use get_default_database() for URI-specified database
+        try:
+            database = _mongo_client.get_default_database()
+            db_name = database.name
+        except Exception:
+            # Fallback to explicit database name if not in URI
+            db_name = "vaelis"
+            database = _mongo_client[db_name]
         
         # Test connection with ping
         await database.command("ping")

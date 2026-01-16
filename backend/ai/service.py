@@ -92,7 +92,7 @@ class AIService:
                 }
         
         # All retries exhausted
-        logger.exception(f"AI service failed after {max_retries + 1} attempts: {last_error}")
+        logger.error(f"AI service failed after {max_retries + 1} attempts", exc_info=True, extra={"last_error": str(last_error)})
         return {
             "output": "AI service temporarily unavailable. Please try again later.",
             "error": "service_error",

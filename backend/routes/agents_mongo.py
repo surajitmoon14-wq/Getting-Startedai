@@ -70,7 +70,7 @@ async def create_agent(body: AgentCreate, user=Depends(firebase_auth_required)):
         )
         await agent.insert()
         
-        return {"agent": agent.dict()}
+        return {"agent": agent.model_dump()}
     except Exception as e:
         logger.exception(f"Failed to create agent: {e}")
         raise HTTPException(status_code=500, detail={"ok": False, "error": "Failed to create agent"})
@@ -81,7 +81,7 @@ async def list_agents(user=Depends(firebase_auth_required)):
     """List all agents for the current user."""
     try:
         agents = await Agent.find(Agent.owner_id == user["uid"]).to_list()
-        return {"agents": [agent.dict() for agent in agents]}
+        return {"agents": [agent.model_dump() for agent in agents]}
     except Exception as e:
         logger.exception(f"Failed to list agents: {e}")
         raise HTTPException(status_code=500, detail={"ok": False, "error": "Failed to list agents"})
@@ -101,7 +101,7 @@ async def get_agent(agent_id: str, user=Depends(firebase_auth_required)):
         if not agent or agent.owner_id != user["uid"]:
             raise HTTPException(status_code=404, detail="Agent not found")
         
-        return {"agent": agent.dict()}
+        return {"agent": agent.model_dump()}
     except HTTPException:
         raise
     except Exception as e:
@@ -142,7 +142,7 @@ async def update_agent(agent_id: str, body: AgentUpdate, user=Depends(firebase_a
         agent.updated_at = datetime.utcnow()
         await agent.save()
         
-        return {"agent": agent.dict()}
+        return {"agent": agent.model_dump()}
     except HTTPException:
         raise
     except Exception as e:

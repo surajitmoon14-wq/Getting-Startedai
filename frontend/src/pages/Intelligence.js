@@ -83,7 +83,13 @@ const Intelligence = ({ user, logout, token, openAuthDialog }) => {
     setLoading(true);
 
     try {
-      // TODO: Update API call to support file uploads
+      // NOTE: File upload to backend is not yet implemented
+      // Currently attachments are only displayed in the UI
+      // Backend integration requires:
+      // 1. GridFS file storage setup
+      // 2. Multipart form-data handling in /ai/generate
+      // 3. File metadata storage in MongoDB
+      // For now, we only send the text prompt
       const data = await apiService.chatWithAI(currentInput, "think", false);
       const aiMessage = { role: "assistant", content: data.output || data.analysis || "Analysis complete." };
       setMessages((prev) => [...prev, aiMessage]);
